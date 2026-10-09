@@ -1,99 +1,72 @@
 # Payment Safety Checklist
 
-Use this checklist when reviewing payment creation, capture, authorization, cancellation, refund, status updates, and provider callbacks.
+Apply only the checks relevant to the reviewed business flow.
 
-Not every application implements every operation. Verify the actual architecture before treating an item as required.
+## Business rules
 
-## 1. Payment invariants
+* [ ] Amount and currency are validated against trusted server-side data.
+* [ ] Payment ownership and customer or tenant boundaries are enforced.
+* [ ] Operations are allowed only from valid payment states.
+* [ ] Refunds do not exceed the permitted refundable balance.
+* [ ] Capture and cancellation rules match the documented business contract.
+* [ ] Sensitive operations require the appropriate permission.
+* [ ] Client-supplied state or provider status is not trusted without verification.
 
-* [ ] Amounts are validated and represented using an exact, documented monetary format.
-* [ ] Currency is validated against the operation's supported currencies.
-* [ ] The authenticated caller is authorized to perform the operation.
-* [ ] Client input cannot directly set trusted internal state or ownership fields.
-* [ ] The system has a clear source of truth for payment state.
-* [ ] Invalid state transitions are rejected.
-* [ ] Responses distinguish accepted, pending, successful, failed, and unknown outcomes where the domain requires them.
-* [ ] Sensitive data is not unnecessarily returned or logged.
+## Idempotency and duplicate processing
 
-## 2. Idempotency
+* [ ] Repeated requests cannot unintentionally create duplicate financial effects.
+* [ ] Idempotency keys are scoped and stored appropriately.
+* [ ] Reusing a key with a different request is handled according to the contract.
+* [ ] Concurrent requests are handled safely.
+* [ ] Provider-supported idempotency is used where appropriate.
+* [ ] A timeout after a possible successful provider operation is treated as ambiguous, not automatically as failure.
+* [ ] Recovery can determine the operation's outcome without blindly repeating a financial side effect.
 
-Verify the behavior for:
+## Transactions and state transitions
 
-* [ ] The first request with a new key.
-* [ ] An exact retry with the same key and payload.
-* [ ] Concurrent requests using the same key.
-* [ ] Reuse of the same key with a different payload.
-* [ ] The same key used by a different customer or operation.
-* [ ] An application restart between processing steps.
-* [ ] A provider timeout after the provider may have processed the request.
-* [ ] A provider success followed by a local persistence failure.
-* [ ] A repeated webhook or message delivery.
-* [ ] Expiration or cleanup of stored idempotency records.
+* [ ] State transitions are validated and enforced server-side.
+* [ ] Database updates preserve required invariants.
+* [ ] Transaction boundaries are appropriate to the operation.
+* [ ] External API calls are not assumed to participate in local database transactions.
+* [ ] Partial failures do not silently leave inconsistent state.
+* [ ] Concurrent updates cannot overwrite a newer valid state without detection.
+* [ ] Recovery and reconciliation are available for relevant failure modes.
 
-An idempotency key should be scoped according to the domain and protected by an atomic mechanism. A prior lookup alone is not sufficient when concurrent requests are possible.
+## Provider communication
 
-The application must define what happens when an existing operation is still in progress or its outcome is unknown.
+* [ ] Requests use the intended provider and environment.
+* [ ] Response status, schema, and business outcome are validated.
+* [ ] Timeouts and network errors are handled.
+* [ ] Retries are bounded and safe for the operation.
+* [ ] Rate limiting and temporary provider failures are handled appropriately.
+* [ ] Ambiguous outcomes are reconciled where necessary.
+* [ ] Provider error details are mapped safely without exposing secrets or sensitive information.
 
-## 3. External side effects
+## Payment data
 
-* [ ] External calls have explicit timeout behavior.
-* [ ] Retry rules distinguish transient errors from permanent errors.
-* [ ] Retries do not unintentionally create a second logical payment.
-* [ ] Provider idempotency is used when supported and appropriate.
-* [ ] Provider success can be recovered if local state recording fails.
-* [ ] Unknown outcomes can be queried, reconciled, or safely retried.
-* [ ] Webhook authenticity is verified using the provider's documented mechanism.
-* [ ] Duplicate and out-of-order callbacks are handled.
-* [ ] Durable event publication is considered when database writes and message publication must remain consistent.
+* [ ] Only required payment data is collected and retained.
+* [ ] Sensitive payment data is not unnecessarily logged or returned.
+* [ ] Provider tokens and references are handled according to their intended use.
+* [ ] Payment details are not exposed across users, merchants, or tenants.
+* [ ] Applicable compliance requirements are established from the actual system context rather than assumed.
 
-A database rollback cannot undo an external payment-provider action.
+## Audit and recovery
 
-## 4. Transactions and concurrency
+* [ ] Important financial state changes can be traced.
+* [ ] Audit records avoid secrets and unnecessary sensitive data.
+* [ ] Failed and ambiguous operations can be investigated.
+* [ ] Reconciliation can identify relevant differences between internal and provider state.
+* [ ] Operational recovery does not bypass payment invariants.
 
-* [ ] Related database changes use the appropriate transaction boundary.
-* [ ] The transaction includes the necessary state changes, but does not unnecessarily hold locks across slow network calls.
-* [ ] Uniqueness and consistency invariants are enforced at the database level where appropriate.
-* [ ] Concurrent updates cannot silently overwrite important payment state.
-* [ ] Lock ordering and isolation assumptions are understood.
-* [ ] Deadlock and serialization failures have deliberate retry behavior.
-* [ ] Event or outbox records are committed consistently with the state they represent.
-* [ ] Compensation and reconciliation are defined for cross-system failures.
+## Testing
 
-## 5. Validation and authorization
+* [ ] Relevant success paths are tested.
+* [ ] Invalid amounts, currencies, states, and permissions are tested where applicable.
+* [ ] Duplicate and concurrent operations are tested where relevant.
+* [ ] Provider failures and ambiguous outcomes are tested.
+* [ ] State consistency is checked after failures.
+* [ ] Regression tests cover confirmed defects.
 
-* [ ] DTO validation runs at the API boundary.
-* [ ] Amounts, currencies, identifiers, and enums are validated.
-* [ ] Ownership and tenant boundaries are checked server-side.
-* [ ] Provider identifiers are not treated as proof of authorization.
-* [ ] State-changing operations require appropriate permissions.
-* [ ] Untrusted webhook fields cannot override authoritative internal values.
-* [ ] Secrets and signature verification material are handled safely.
+## Review rule
 
-## 6. Errors and observability
-
-* [ ] Internal exceptions do not leak stack traces or sensitive implementation details to clients.
-* [ ] Logs contain enough correlation information to investigate failures without exposing secrets or full payment payloads.
-* [ ] Unknown provider outcomes are not reported as definitive failures or successes without evidence.
-* [ ] Retry attempts and final outcomes are distinguishable.
-* [ ] Alerts cover relevant failure rates, stuck states, and reconciliation discrepancies.
-* [ ] Operational recovery procedures are documented for ambiguous or inconsistent outcomes.
-
-## 7. State machine
-
-Check whether the implementation defines and enforces allowed transitions.
-
-For example, an application might model transitions from `pending` to `succeeded` or `failed`, but the actual states and rules depend on its domain and provider. Do not impose a universal state machine without reviewing the existing contract.
-
-* [ ] Terminal states cannot be overwritten by stale events without a deliberate rule.
-* [ ] Repeated events do not repeat financial side effects.
-* [ ] Out-of-order events are handled.
-* [ ] State changes have a traceable source and timestamp.
-* [ ] The system can recover from a local/provider state mismatch.
-
-## 8. Before approving
-
-* [ ] Findings are evidence-based and include locations.
-* [ ] The most serious plausible financial risks are addressed.
-* [ ] Tests cover the identified failure paths.
-* [ ] Remaining assumptions and risks are explicit.
-* [ ] No secrets or real customer data are included in the review output.
+A checkbox is an investigation prompt, not proof of a defect. Trace the relevant code path and requirements before reporting a finding. If a required business rule is not documented, record the uncertainty rather than inventing the rule.

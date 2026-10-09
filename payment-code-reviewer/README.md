@@ -1,73 +1,94 @@
-# Payment code reviewer
+# Payment Code Reviewer
 
-A Claude skill for reviewing NestJS payment APIs. It helps developers find payment-safety problems systematically, explain findings clearly, and recommend changes that can be validated with tests.
+A reusable Claude Skill for reviewing payment-related code based on the actual business use case.
 
-**Use when:** Implementing or reviewing a NestJS payment API.
+It helps identify correctness, security, reliability, concurrency, and testing issues without forcing the same checklist onto every change.
 
-The skill checks:
+## Capabilities
 
-* Idempotency and duplicate-payment risks.
-* Input validation and authorization.
-* Database transaction boundaries.
-* Provider timeouts and ambiguous outcomes.
-* Webhook retries and duplicate delivery.
-* Error handling, recovery, and reconciliation.
-* Tests for concurrency and failure scenarios.
+* Payment creation, authorization, capture, refunds, and cancellations
+* Idempotency, duplicate operations, and concurrency
+* Payment state transitions and reconciliation
+* Webhook signature verification and event processing
+* OAuth, access tokens, and API keys
+* TLS, mTLS, and certificate lifecycle checks
+* Authentication, authorization, and tenant isolation
+* Exposed APIs and authenticated outbound requests
+* Credential management, sensitive logging, and error handling
+* Focused regression-test recommendations
 
-## Structure
+## Repository structure
 
-```
+```text
 payment-code-reviewer/
-  README.md
-  SKILL.md                          # review workflow and safety rules
-  references/
-    payment-safety-checklist.md     # review criteria
-    testing-playbook.md             # test scenarios and report format
-  LICENSE
+├── SKILL.md
+├── README.md
+├── references/
+│   ├── business-flow-matrix.md
+│   ├── payment-safety-checklist.md
+│   ├── api-security-checklist.md
+│   ├── testing-playbook.md
+│   └── finding-format.md
+└── test/
+    ├── README.md
+    ├── test-cases.md
+    ├── expected-findings.md
+    └── prompt.md
 ```
 
 ## Installation
 
-Copy the `payment-code-reviewer` folder into the skills directory supported by your Claude environment. For Claude Code, project-level skills are stored under:
+Follow the Claude Skills installation method supported by your Claude environment.
 
-```
-.claude/skills/payment-code-reviewer/SKILL.md
-.claude/skills/payment-code-reviewer/references/
-```
+For a local skill installation, place the `payment-code-reviewer` directory in the supported skills directory, then start or refresh a conversation so the skill can be discovered.
 
-Keep the `references` directory alongside `SKILL.md`.
+For GitHub publication, keep `SKILL.md` at the skill directory root. Include the referenced files so links and instructions remain complete.
 
-## How to use
+## Example prompts
 
-Describe the task and provide the relevant code.
+* Review this payment creation change for duplicate-payment risks.
+* Review this refund endpoint for business-rule and authorization defects.
+* Review this webhook handler for signature verification and replay risks.
+* Review this OAuth client for token expiry, secret handling, and safe retries.
+* Review this mTLS integration against the supplied provider contract.
+* Review this payment history API for tenant isolation.
+* Review this reconciliation job for concurrency and recovery issues.
 
-Examples:
+## Review principles
 
-* "Review this NestJS payment endpoint for idempotency and duplicate-payment risks."
-* "Check whether this payment service handles provider timeouts safely."
-* "Identify missing tests for provider timeouts and repeated webhooks."
+The skill identifies the use case first, selects relevant checks, traces controls across the actual code path, and reports actionable findings.
 
-Provide the relevant controller, DTO, service, persistence logic, and tests. Include provider and database behavior only when it is safe to share.
+It distinguishes confirmed defects from potential risks and unknown requirements. It does not assume that every integration requires OAuth, API keys, mTLS, or webhooks.
 
-## Safety and limitations
+## Testing the skill
 
-* This skill does not replace production change approval or operational procedures.
-* Payment safety depends on the actual application architecture and provider contract.
-* Recommendations must be tested against the target application and database.
-* Never include production credentials, customer payment details, or private infrastructure information in examples.
+See `test/README.md` for the manual evaluation workflow.
 
-## Contributing
+The test scenarios and expected findings help assess both defect detection and resistance to false positives. They are evaluation fixtures, not a guarantee of complete security coverage.
 
-Contributions are welcome when they improve correctness, clarity, safety, or testability.
+## Confidentiality
 
-Please:
+Before sharing code with any model or publishing examples:
 
-1. Keep examples fictional and provider-neutral unless a specific integration is intentionally documented.
-2. Avoid organization-specific schemas, hostnames, internal error codes, and business rules.
-3. Explain the reasoning behind important safety recommendations.
-4. Include reproducible examples or tests when practical.
-5. Distinguish verified behavior from assumptions.
+* Remove real API keys, client secrets, access tokens, private keys, certificates containing sensitive material, and webhook signing secrets.
+* Remove customer information and payment data.
+* Replace internal hostnames, company-specific identifiers, and private infrastructure details where necessary.
+* Use fictional provider endpoints and placeholder credentials.
+* Follow your organization's rules for source-code sharing.
+
+Never use production credentials to run evaluation scenarios.
+
+## Contributions
+
+Contributions should improve use-case selection, evidence-based findings, and test quality without adding provider-specific assumptions to generic guidance.
+
+New test scenarios should include:
+
+1. The business use case.
+2. Sanitized input or behavior.
+3. Expected findings.
+4. False-positive constraints.
 
 ## License
 
-MIT
+Choose and add an appropriate open-source license before publishing. Do not imply that the repository has a license until a license file is included.

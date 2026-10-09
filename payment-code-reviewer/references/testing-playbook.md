@@ -1,127 +1,145 @@
-# Payment API Testing Playbook
+# Testing Playbook
 
-Use these scenarios to design focused tests for NestJS payment APIs. Adapt the test names and expected results to the application's documented contract.
+Select tests based on the actual payment flow and implementation.
 
-## 1. Request validation
+## General test quality
 
-Test:
+Check whether tests:
 
-* Missing required fields.
-* Invalid or unsupported currency.
-* Zero, negative, excessively large, or malformed amounts.
-* Decimal precision that the currency or API does not support.
-* Invalid identifiers and enum values.
-* Extra fields that attempt to set internal state or ownership.
-* Requests from an unauthorized user or tenant.
+* Cover the relevant business rule and successful behavior.
+* Exercise invalid inputs and authorization failures.
+* Verify externally observable behavior rather than only private implementation details.
+* Assert payment state and financial effects after failure.
+* Cover duplicate requests or concurrency when the flow is exposed to them.
+* Avoid real credentials, real payments, and customer data.
+* Are deterministic and isolated from unrelated services where possible.
 
-Verify that rejected requests do not create payment records or trigger provider calls.
+## Payment creation
 
-## 2. Idempotency
+Consider tests for:
 
-Test:
+* Valid amount and currency
+* Invalid or unsupported amount and currency
+* Unauthorized payment creation
+* Repeated requests with the same idempotency key
+* Conflicting requests using the same key
+* Provider timeout before a known outcome
+* Provider success followed by a local persistence failure
+* Safe reconciliation of ambiguous outcomes
 
-* A valid first request creates one logical operation.
-* An exact retry returns the documented result without creating a second operation.
-* Two simultaneous requests with the same key do not create two logical payments.
-* Reusing a key with a different payload follows the API contract and does not silently change the original operation.
-* Keys from different scopes do not collide incorrectly.
-* A retry after a timeout safely resolves the original operation.
-* An in-progress request has a defined response behavior.
+## Authorization and capture
 
-Assert both the API response and persisted state. Counting provider mock calls alone may not prove that duplicate financial operations are impossible.
+Consider tests for:
 
-## 3. Provider failures and ambiguous outcomes
+* Allowed and disallowed state transitions
+* Capture amounts beyond the allowed limit
+* Repeated capture requests
+* Concurrent capture attempts
+* Provider rejection and timeout
+* Partial capture or authorization expiry if supported
 
-Test:
+## Refund and cancellation
 
-* Provider rejects the request.
-* Provider times out before a response arrives.
-* Provider processes the request but the response is lost.
-* Provider succeeds but local persistence fails.
-* A transient provider error triggers only the intended retry policy.
-* A permanent validation or business error is not retried indefinitely.
-* Provider status lookup returns pending, succeeded, failed, or unknown outcomes where supported.
+Consider tests for:
 
-Verify that an ambiguous result is not automatically treated as a definitive failure and that retrying does not create a second logical payment.
+* Refund by an authorized owner
+* Attempted refund by an unauthorized caller
+* Refund amount exceeding the permitted balance
+* Repeated refund request
+* Concurrent refund requests
+* Cancellation from an invalid state
+* Provider timeout after a potentially successful operation
+* Internal state consistency after partial failure
 
-## 4. Transaction boundaries
+## Webhook handling
 
-Test:
+Consider tests for:
 
-* A database error before the commit leaves no partial local state.
-* Related records remain consistent when a transaction fails.
-* A provider success followed by a local write failure can be recovered.
-* An outbox record, when used, commits consistently with the business state.
-* A message-publishing failure does not silently lose a required event.
-* Deadlock or serialization errors follow the documented retry policy.
+* Valid provider signature
+* Invalid or missing signature
+* Altered payload
+* Malformed event
+* Duplicate event delivery
+* Replay or timestamp rejection where supported
+* Out-of-order event where relevant
+* Unknown payment reference
+* Invalid state transition
+* Persistence failure after successful verification
 
-Use the actual database engine for tests involving database constraints, transaction isolation, and locking. In-memory mocks alone cannot prove PostgreSQL concurrency behavior.
+Test the actual verification boundary. If middleware verifies the signature, tests should cover that middleware or an appropriate integration path rather than assuming the controller owns verification.
 
-## 5. Webhooks and asynchronous messages
+## OAuth and API keys
 
-Test:
+Consider tests for:
 
-* A valid authenticated webhook is accepted.
-* An invalid signature is rejected.
-* A duplicate event does not repeat the financial side effect.
-* An event arrives before the expected preceding event.
-* Events arrive out of order.
-* The same event identifier is reused with conflicting content.
-* Event processing fails midway and is retried.
-* An unrelated or unknown provider reference cannot modify another customer's payment.
+* Successful token acquisition
+* Invalid client credentials
+* Expired access token
+* Token refresh failure
+* Missing or invalid scope where relevant
+* Missing, invalid, or revoked API key
+* Safe handling of token endpoint failures
+* Absence of secrets from logs and error responses
 
-Verify both state changes and external side effects.
+## TLS and mTLS
 
-## 6. State transitions
+Where the test environment supports it, consider:
 
-Test:
+* Valid server certificate
+* Invalid or untrusted server certificate
+* Hostname mismatch
+* Missing, invalid, or expired client certificate when mTLS is required
+* Certificate rotation and configuration change
+* No insecure fallback after validation failure
 
-* Each documented valid transition succeeds.
-* Invalid transitions are rejected.
-* Repeated terminal events are handled safely.
-* A stale event cannot incorrectly revert a newer state.
-* Concurrent updates preserve the documented invariants.
-* Reconciliation can detect a mismatch between provider and local state.
+Avoid tests that disable certificate verification as a workaround.
 
-Do not assume every provider or product uses the same set of states.
+## Exposed APIs and authorization
 
-## 7. NestJS API behavior
+Consider tests for:
 
-Test:
+* Missing authentication
+* Invalid or expired credentials
+* Authenticated caller without permission
+* Cross-user or cross-tenant payment access
+* Invalid path and query parameters
+* Oversized payloads where limits are required
+* Safe error responses
+* SSRF protections for user-controlled destinations where relevant
 
-* DTO validation is actually enabled for the route.
-* Guards enforce authentication and authorization.
-* Service errors map to the expected HTTP response.
-* Internal errors do not expose stack traces or secrets.
-* Async errors are propagated and handled.
-* Webhook signature verification uses the required request representation.
-* Sensitive fields are excluded from response serialization and logs.
+## Provider client and outbound calls
 
-## 8. Test quality
+Consider tests for:
 
-Prefer:
+* Connection timeout
+* Provider server error
+* Rate limiting
+* Invalid or unexpected response
+* Redirect to an unintended host
+* Bounded retry behavior
+* Idempotency across retries
+* No credential leakage
+* Safe handling of ambiguous payment outcomes
 
-* Deterministic mocks for provider failures.
-* Integration tests for database constraints and transaction behavior.
-* Explicit synchronization for concurrency tests instead of arbitrary sleeps.
-* Unique test identifiers and isolated test data.
-* Assertions on persisted state and side effects.
-* Cleanup that cannot affect non-test environments.
+## Reconciliation jobs
 
-Avoid:
+Consider tests for:
 
-* Tests that only assert HTTP status codes.
-* Tests that depend on live payment providers by default.
-* Real customer or production payment data.
-* Timing assumptions without synchronization.
-* Claims that a race is fixed without a test that exercises concurrent requests.
+* Repeated job execution
+* Concurrent job instances
+* Provider and internal state mismatch
+* Partial processing failure
+* Retry after restart
+* Duplicate event or record processing
+* Recovery without duplicate financial side effects
 
-## Suggested test report
+## Test recommendation format
 
-For each test scenario, document:
+For each relevant finding, suggest:
 
-* **Setup:** Initial database and provider state.
-* **Action:** Request, event, failure, or concurrent operation.
-* **Expected result:** API response and state invariants.
-* **Assertions:** Database rows, provider calls, emitted events, and relevant logs.
-* **Failure significance:** What financial or operational risk the test protects against.
+1. Scenario or precondition
+2. Action
+3. Expected result
+4. Expected payment-state or external-side-effect invariant
+
+Do not recommend every test category for every change. Select tests that exercise the risk identified in the review.
