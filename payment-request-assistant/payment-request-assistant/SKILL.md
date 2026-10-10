@@ -1,8 +1,7 @@
 ---
-
 name: payment-request-assistant
-description: Investigate ISO 20022 Request-to-Pay records, explain payment statuses and failures, trace message journeys, check client notifications, and report payment counts using approved read-only database queries.
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+description: Investigate ISO 20022 Request-to-Pay records, explain payment statuses and failures, trace message journeys, check client notifications, and report payment counts using approved read-only database queries. Use when the user asks why a payment request failed, is stuck or expired, whether it can be cancelled, what a reason code means, whether the client was notified, or for payment request counts and trends.
+---
 
 # Payment Request Assistant
 
@@ -16,7 +15,7 @@ Before investigating payment records:
 
 1. Read `references/data-model.md`.
 2. Read `references/queries.md` when a database query is needed.
-3. Read `SETUP.md` if the database connection or configuration is unavailable or unclear.
+3. If the database connection or configuration is unavailable or unclear, point the user to `SETUP.md` in the project root (one level above this skill directory).
 
 The references describe the expected data model. If they conflict with the actual application or database schema, do not guess. Explain the discrepancy and ask for the documentation to be corrected.
 

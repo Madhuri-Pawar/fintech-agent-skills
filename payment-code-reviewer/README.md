@@ -91,4 +91,4 @@ New test scenarios should include:
 
 ## License
 
-Choose and add an appropriate open-source license before publishing. Do not imply that the repository has a license until a license file is included.
+MIT. See [LICENSE](LICENSE).

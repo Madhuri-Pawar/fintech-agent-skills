@@ -12,6 +12,54 @@ An evidence-driven Claude Code plugin for investigating Jira defects and inciden
 - Recommends a fix based on business correctness, technical quality, performance, scalability, security, reliability and maintainability.
 - Produces a test, rollout and rollback plan.
 
+## How it works
+
+### Components
+
+The plugin contains only instructions. All data comes from the tools
+already connected in your Claude Code session.
+
+```mermaid
+flowchart LR
+    U["You<br/>/jira-assistant-plugin:issue-investigator PAY-123"] --> CC["Claude Code"]
+    CC --> P["jira-assistant-plugin<br/>issue-investigator skill + references"]
+    P -->|"read issue"| J["Jira MCP"]
+    P -->|"read code"| R["Current repository"]
+    P -.->|"only if needed, read-only"| DB["PostgreSQL MCP<br/>local / stage / prod"]
+    P -.->|"only if needed, read-only"| O["Observability MCP<br/>logs, traces, metrics"]
+    P --> REP["Investigation report<br/>root cause + fix plan"]
+```
+
+Solid lines are always used. Dotted lines are used only when the evidence
+calls for them and the connection exists. The environment is whichever
+server your MCP configuration connects.
+
+### Investigation flow
+
+```mermaid
+flowchart TD
+    A["Jira issue key"] --> P1["1. Resolve the Jira issue<br/>description, comments, links, history"]
+    P1 --> P2["2. Understand impact<br/>expected vs actual, severity, scope"]
+    P2 --> P3["3. Discover the repository<br/>stack, entry points, data flow"]
+    P3 --> P4["4. Build hypotheses<br/>rank checks by diagnostic value"]
+    P4 --> P5["5. Investigate relevant layers<br/>frontend, backend, DB, queues, config..."]
+    P5 --> Q{"Runtime evidence<br/>needed?"}
+    Q -->|"database"| DB["Query connected DB<br/>read-only, record environment"]
+    Q -->|"logs / traces"| OB["Query observability tools"]
+    Q -->|"no"| P6
+    DB --> P6
+    OB --> P6
+    P6{"6. Verify root cause"}
+    P6 -->|"CONFIRMED / PROBABLE"| P7["7. Design the solution<br/>compare options and trade-offs"]
+    P6 -->|"UNDETERMINED"| N["Ranked next-investigation plan"]
+    N -.->|"new evidence"| P4
+    P7 --> P8["8. Validation and rollout<br/>tests, monitoring, rollback"]
+    P8 --> OUT["Final report<br/>no code, data or Jira changes"]
+```
+
+If a tool is missing or a query fails, the plugin continues and lists that
+check as outstanding in the report instead of guessing.
+
 ## Requirements
 
 - Claude Code installed and authenticated.

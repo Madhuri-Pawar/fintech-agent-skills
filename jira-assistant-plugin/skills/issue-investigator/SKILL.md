@@ -97,6 +97,10 @@ Before proposing code changes:
    or discard existing user changes.
 7. Use search results to locate candidate files, then read the relevant
    source and surrounding logic.
+8. Inspect recent commit history and blame for the relevant code, and
+   correlate changes with the issue's first-seen time, affected release,
+   or linked pull requests. Treat a matching change as a hypothesis to
+   verify, not proof of causation.
 
 Do not assume every technology exists. Report only layers discovered in
 the repository or supported by evidence.

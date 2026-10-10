@@ -1,13 +1,13 @@
 ---
 name: payment-code-reviewer
-description: Review NestJS payment API code for idempotency, duplicate-payment risks, validation, authorization, transaction boundaries, provider timeouts, webhook handling, error recovery, reconciliation, and missing tests. Use when implementing or reviewing payment creation, capture, refund, cancellation, status updates, or provider callbacks.
+description: Review payment-related code (examples assume NestJS, but the checks apply to any backend) for correctness, potential defects, edge cases, and payment-flow risks - idempotency, duplicate payments, amount and currency validation, authorization, transaction boundaries, provider timeouts, webhook handling, OAuth/API-key/mTLS integrations, error recovery, reconciliation, and missing tests. Use when implementing or reviewing payment creation, authorization, capture, refund, cancellation, status updates, payment APIs, or provider callbacks.
 ---
 
 # Payment Code Reviewer
 
 ## Purpose
 
-Find payment-safety problems in NestJS payment code and recommend fixes that can be verified with tests. Prioritize risks that could move money twice, lose money, or leave payment state wrong or unknown.
+Find correctness defects, edge cases, and payment-flow risks in payment code and recommend fixes that can be verified with tests. Prioritize risks that could move money twice, lose money, or leave payment state wrong or unknown.
 
 Base findings on the code and contracts provided. Do not invent provider behavior, database guarantees, or business rules.
 
@@ -15,8 +15,11 @@ Base findings on the code and contracts provided. Do not invent provider behavio
 
 Before reviewing:
 
-* Use [references/payment-safety-checklist.md](references/payment-safety-checklist.md) for the review criteria.
+* Use [references/business-flow-matrix.md](references/business-flow-matrix.md) to identify the business flow and select the relevant checks.
+* Use [references/payment-safety-checklist.md](references/payment-safety-checklist.md) for payment correctness and safety criteria.
+* Use [references/api-security-checklist.md](references/api-security-checklist.md) when the change touches API exposure, authentication, authorization, webhooks, OAuth, API keys, TLS/mTLS, or outbound provider calls.
 * Use [references/testing-playbook.md](references/testing-playbook.md) when identifying missing tests.
+* Use [references/finding-format.md](references/finding-format.md) to write findings.
 
 Not every application implements every operation. Check the actual architecture before treating a checklist item as required.
 
@@ -57,24 +60,21 @@ Work through the checklist sections, focusing on:
 * **Webhooks:** Signature verification, duplicate and out-of-order delivery, stale events that could revert a terminal state.
 * **Errors and observability:** No leaked internals or secrets, unknown outcomes not reported as success or failure, enough correlation data for reconciliation.
 
+Also check edge cases: zero, negative, and maximum amounts; rounding and minor units; currency mismatches; partial captures and refunds; retries after partial failure; expired or already-terminal payments; and null or missing provider fields.
+
 ## 5. Report findings
 
-Order findings by severity:
+Use the template and severity guidance in [references/finding-format.md](references/finding-format.md). Order findings by severity (Critical, High, Medium, Low, Informational). As a rule of thumb:
 
 * **Critical:** Can cause duplicate charges, lost funds, or unauthorized payment actions.
 * **High:** Can leave payment state wrong or unrecoverable without manual work.
 * **Medium:** Weakens safety, observability, or recovery.
-* **Low:** Clarity, maintainability, or minor hardening.
+* **Low:** Limited-impact defect or minor hardening.
+* **Informational:** Useful observation that is not a defect.
 
-For each finding, include:
+For every finding, state the concrete failure scenario: the sequence of events that causes harm. Mark confidence as Confirmed, Likely, or Needs verification, and flag anything that depends on an unverified assumption, such as provider idempotency support or database isolation level.
 
-* **Location:** File and line or function.
-* **Problem:** What is wrong.
-* **Failure scenario:** The concrete sequence of events that causes harm.
-* **Recommendation:** The smallest change that addresses it.
-* **Verification:** The test that proves the fix (see the testing playbook).
-
-Mark anything that depends on an unverified assumption, such as provider idempotency support or database isolation level.
+Separate confirmed defects from potential risks and open questions. Do not report a missing control until you have traced the shared guards, middleware, and downstream services where it might be enforced.
 
 ## 6. Recommend tests
 

@@ -9,15 +9,17 @@ The skill files alone do not create a database connection. The host application 
 The project should contain:
 
 ```text
-payment-request-assistant/
-├── SKILL.md
+payment-request-assistant/          # project root
+├── README.md
 ├── SETUP.md
-└── references/
-    ├── data-model.md
-    └── queries.md
+└── payment-request-assistant/      # the skill directory you install
+    ├── SKILL.md
+    └── references/
+        ├── data-model.md
+        └── queries.md
 ```
 
-Confirm that the filenames and directory names match the links and paths in `SKILL.md`.
+Install the inner `payment-request-assistant/` directory as the skill. Confirm that the filenames and directory names match the links and paths in `SKILL.md`.
 
 ## 2. Verify the database schema
 

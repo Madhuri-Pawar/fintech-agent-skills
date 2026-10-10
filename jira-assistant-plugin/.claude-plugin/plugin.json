@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Evidence-driven Jira and repository investigation for issues in local, stage, or production environments, dynamic full-stack root-cause analysis, and risk-aware fix planning.",
   "author": {
-    "name": "Internal Engineering"
+    "name": "Madhuri-Pawar"
   },
   "keywords": [
     "jira",
@@ -12,6 +12,7 @@
     "debugging",
     "frontend",
     "backend",
-    "database"
+    "database",
+    "git-history"
   ]
 }

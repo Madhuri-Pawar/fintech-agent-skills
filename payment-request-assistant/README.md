@@ -14,7 +14,9 @@ payment-request-assistant/
   references/
     data-model.md       # config, IDs, tables, statuses, reason codes
     queries.md          # ready-made SQL and the journey query
-SETUP.md
+README.md
+SETUP.md                # configuration and pilot checklist
+LICENSE
 ```
 
 ## Getting started
