@@ -1,0 +1,15 @@
+{
+  "name": "fintech-agent-skills",
+  "description": "Claude Code plugins for fintech engineering: Jira issue investigation, payment workflows and code review.",
+  "owner": {
+    "name": "Madhuri-Pawar"
+  },
+  "plugins": [
+    {
+      "name": "jira-assistant-plugin",
+      "source": "./jira-assistant-plugin",
+      "description": "Evidence-driven Jira issue investigation for local, stage, or production environments, with root-cause analysis and risk-aware fix planning.",
+      "version": "1.0.0"
+    }
+  ]
+}
